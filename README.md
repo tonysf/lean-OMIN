@@ -42,6 +42,9 @@ correct in context.
 
 ## Roadmap
 
+The detailed backward proof roadmap to Coste 3.2 lives in
+[`ROADMAP.md`](ROADMAP.md).
+
 1. Prove the one-variable and cell-decomposition layer from Coste Chapter 2
    inside Lean, rather than leaving it axiomatic.
 2. Derive Definable Choice (Coste 3.1) and Curve Selection (Coste 3.2) from
