@@ -16,6 +16,9 @@ implementation order decision-complete before more Lean code is written.
 - Work abstractly first; postpone the concrete semialgebraic/o-minimal
   instance over `ℝ`.
 
+The first expanded execution checklist for this roadmap lives in
+[`ONE_VARIABLE_CHECKLIST.md`](ONE_VARIABLE_CHECKLIST.md).
+
 ## Current Boundary
 
 The current library already fixes the raw geometric interface:

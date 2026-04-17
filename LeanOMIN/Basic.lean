@@ -9,10 +9,36 @@ namespace LeanOMIN
 /-- Euclidean `n`-space over the reals, represented as `Fin n → ℝ`. -/
 abbrev Rn (n : ℕ) := Fin n → ℝ
 
+/-- Transport coordinates along an equivalence of finite index types. -/
+def reindexRn {m n : ℕ} (e : Fin m ≃ Fin n) : Rn m ≃ Rn n where
+  toFun x j := x (e.symm j)
+  invFun y i := y (e i)
+  left_inv x := by
+    funext i
+    simp
+  right_inv y := by
+    funext j
+    simp
+
+@[simp] theorem reindexRn_apply {m n : ℕ} (e : Fin m ≃ Fin n) (x : Rn m) (j : Fin n) :
+    reindexRn e x j = x (e.symm j) := rfl
+
+@[simp] theorem reindexRn_symm_apply {m n : ℕ} (e : Fin m ≃ Fin n) (y : Rn n) (i : Fin m) :
+    (reindexRn e).symm y i = y (e i) := rfl
+
 /-- The standard equivalence `ℝ^(m+n) ≃ ℝ^m × ℝ^n`. -/
 def splitAtEquiv (m n : ℕ) : Rn (m + n) ≃ Rn m × Rn n :=
   (Equiv.piCongrLeft' (fun _ : Fin (m + n) => ℝ) (finSumFinEquiv.symm)).trans
     (Equiv.sumArrowEquivProdArrow (Fin m) (Fin n) ℝ)
+
+@[simp] theorem splitAtEquiv_fin_append {m n : ℕ} (x : Rn m) (y : Rn n) :
+    splitAtEquiv m n (Fin.append x y) = (x, y) := by
+  ext i <;> simp [splitAtEquiv]
+
+@[simp] theorem splitAtEquiv_symm_apply {m n : ℕ} (x : Rn m) (y : Rn n) :
+    (splitAtEquiv m n).symm (x, y) = Fin.append x y := by
+  apply (splitAtEquiv m n).injective
+  simp
 
 /-- View a real number as an element of `ℝ^1`. -/
 def scalarToRn1 : ℝ → Rn 1 := fun x _ => x
@@ -56,6 +82,27 @@ instance instRnEncodingProd (α β : Type*) [RnEncoding α] [RnEncoding β] : Rn
 /-- Encode a subset of a coordinatized type as a subset of the corresponding `ℝ^n`. -/
 def encodeSet (α : Type*) [RnEncoding α] (A : Set α) : Set (Rn (RnEncoding.dim α)) :=
   (RnEncoding.equiv (α := α)).symm ⁻¹' A
+
+/-- Transport a raw definable set along a coordinate reindexing. -/
+def reindexSet {m n : ℕ} (e : Fin m ≃ Fin n) (A : Set (Rn m)) : Set (Rn n) :=
+  (reindexRn e).symm ⁻¹' A
+
+@[simp] theorem mem_reindexSet {m n : ℕ} {e : Fin m ≃ Fin n} {A : Set (Rn m)} {x : Rn n} :
+    x ∈ reindexSet e A ↔ (reindexRn e).symm x ∈ A := Iff.rfl
+
+@[simp] theorem mem_encodeSet_real {A : Set ℝ} {x : Rn 1} :
+    x ∈ encodeSet ℝ A ↔ rn1ToScalar x ∈ A := by
+  change realEquivRn1.symm x ∈ A ↔ rn1ToScalar x ∈ A
+  rfl
+
+@[simp] theorem mem_encodeSet_real_prod {A : Set (ℝ × ℝ)} {z : Rn 2} :
+    z ∈ encodeSet (ℝ × ℝ) A ↔
+      (rn1ToScalar (splitAtEquiv 1 1 z).1, rn1ToScalar (splitAtEquiv 1 1 z).2) ∈ A := by
+  change
+    (realEquivRn1.symm ((splitAtEquiv 1 1 z).1), realEquivRn1.symm ((splitAtEquiv 1 1 z).2)) ∈ A
+      ↔
+        (rn1ToScalar ((splitAtEquiv 1 1 z).1), rn1ToScalar ((splitAtEquiv 1 1 z).2)) ∈ A
+  rfl
 
 /-- The graph of a function over a domain. -/
 def rawGraph {α β : Type*} (A : Set α) (f : α → β) : Set (α × β) :=

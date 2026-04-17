@@ -103,9 +103,14 @@ structure OMinStructure where
   definable_projection :
     ∀ {m n : ℕ} {A : Set (Rn (m + n))},
       Definable A → Definable (prefixProjection m n A)
+  definable_reindex :
+    ∀ {m n : ℕ} (e : Fin m ≃ Fin n) {A : Set (Rn m)},
+      Definable A → Definable (reindexSet e A)
   definable_singleton : ∀ {n : ℕ} (x : Rn n), Definable ({x} : Set (Rn n))
   definable_coordinateHalfspace :
     ∀ {n : ℕ} (i : Fin n) (c : ℝ), Definable {x : Rn n | x i < c}
+  definable_lt :
+    DefinableSetOf Definable ({p : ℝ × ℝ | p.1 < p.2} : Set (ℝ × ℝ))
   definable_openBall :
     ∀ {n : ℕ} (b : Rn n) (r : ℝ),
       DefinableSetOf Definable ({x : Rn n | dist x b < r} : Set (Rn n))
@@ -116,6 +121,10 @@ structure OMinStructure where
   definable_Ioo : ∀ a b : ℝ, DefinableSetOf Definable (Set.Ioo a b)
   definable_Icc : ∀ a b : ℝ, DefinableSetOf Definable (Set.Icc a b)
   definable_Ico : ∀ a b : ℝ, DefinableSetOf Definable (Set.Ico a b)
+  definable_subset_real_finite_or_contains_Ioo :
+    ∀ {A : Set ℝ},
+      DefinableSetOf Definable A →
+      A.Finite ∨ ∃ a b : ℝ, a < b ∧ Set.Ioo a b ⊆ A
   definable_const :
     ∀ {α β : Type*} [RnEncoding α] [RnEncoding β] (A : Set α) (y : β),
       DefinableSetOf Definable A → DefinableMapOf Definable A (fun _ => y)
@@ -132,6 +141,10 @@ structure OMinStructure where
       DefinableMapOf Definable B g →
       MapsTo f A B →
       DefinableMapOf Definable A (g ∘ f)
+  definable_image :
+    ∀ {α β : Type*} [RnEncoding α] [RnEncoding β] {A : Set α} {f : α → β},
+      DefinableMapOf Definable A f →
+      DefinableSetOf Definable (f '' A)
   definable_piecewise :
     ∀ {α β : Type*} [RnEncoding α] [RnEncoding β]
       {A B : Set α} {f g : α → β},
@@ -214,6 +227,11 @@ theorem definable_inter {n : ℕ} {A B : Set (Rn n)} (hA : S.Definable A) (hB : 
     simp
   simpa [hEq] using hComp
 
+/-- Coordinate reindexing preserves raw definability. -/
+theorem definableReindex {m n : ℕ} (e : Fin m ≃ Fin n) {A : Set (Rn m)} (hA : S.Definable A) :
+    S.Definable (reindexSet e A) :=
+  S.definable_reindex e hA
+
 /-- Raw-coordinate version of the interval axiom `Ioi`. -/
 theorem definableIoi (a : ℝ) : DefinableSetOf S.Definable (Set.Ioi a) :=
   S.definable_Ioi a
@@ -221,6 +239,11 @@ theorem definableIoi (a : ℝ) : DefinableSetOf S.Definable (Set.Ioi a) :=
 /-- Raw-coordinate version of the interval axiom `Ioo`. -/
 theorem definableIoo (a b : ℝ) : DefinableSetOf S.Definable (Set.Ioo a b) :=
   S.definable_Ioo a b
+
+/-- Raw-coordinate version of the interval axiom `Iio`. -/
+theorem definableIio (a : ℝ) : DefinableSetOf S.Definable (Set.Iio a) := by
+  simpa [DefinableSetOf, encodeSet, rn1ToScalar] using
+    (S.definable_coordinateHalfspace (n := 1) 0 a)
 
 /-- Raw-coordinate version of the interval axiom `Icc`. -/
 theorem definableIcc (a b : ℝ) : DefinableSetOf S.Definable (Set.Icc a b) :=
@@ -230,10 +253,29 @@ theorem definableIcc (a b : ℝ) : DefinableSetOf S.Definable (Set.Icc a b) :=
 theorem definableIco (a b : ℝ) : DefinableSetOf S.Definable (Set.Ico a b) :=
   S.definable_Ico a b
 
+/-- One-dimensional o-minimality in the finite-or-interval form. -/
+theorem definableSubsetRealFiniteOrContainsIoo {A : Set ℝ}
+    (hA : DefinableSetOf S.Definable A) :
+    A.Finite ∨ ∃ a b : ℝ, a < b ∧ Set.Ioo a b ⊆ A :=
+  S.definable_subset_real_finite_or_contains_Ioo hA
+
+/-- Infinite definable subsets of `ℝ` contain a nontrivial open interval. -/
+theorem definableInfiniteSubsetRealContainsIoo {A : Set ℝ}
+    (hA : DefinableSetOf S.Definable A) (hAinf : A.Infinite) :
+    ∃ a b : ℝ, a < b ∧ Set.Ioo a b ⊆ A := by
+  rcases S.definableSubsetRealFiniteOrContainsIoo hA with hfin | hinterval
+  · exfalso
+    exact hAinf.not_finite hfin
+  · exact hinterval
+
 /-- Coordinate halfspaces are definable in every dimension. -/
 theorem definableCoordinateHalfspace {n : ℕ} (i : Fin n) (c : ℝ) :
     S.Definable {x : Rn n | x i < c} :=
   S.definable_coordinateHalfspace i c
+
+/-- The strict order relation on `ℝ × ℝ` is definable. -/
+theorem definableLt : DefinableSetOf S.Definable ({p : ℝ × ℝ | p.1 < p.2} : Set (ℝ × ℝ)) :=
+  S.definable_lt
 
 /-- Open metric balls in `ℝ^n` are definable. -/
 theorem definableOpenBall {n : ℕ} (b : Rn n) (r : ℝ) :
@@ -263,8 +305,8 @@ theorem monotonicity
               Set.Subsingleton (f '' Set.Ioo (x - ε) (x + ε))) :=
   S.monotonicity_axiom hf
 
-/-- Coste, Lemma 2.2: a definable one-variable map is continuous on some interval near the
-endpoint. -/
+/-- Endpoint regularity corollary used before Coste 3.2: a definable one-variable map into
+`ℝ^n` is continuous on some interval just to the right of the endpoint. -/
 theorem oneVarEventuallyContinuous
     {n : ℕ} {a : ℝ} {f : ℝ → Rn n} (hf : S.DefinableMap (Set.Ioi a) f) :
     ∃ ε > 0, ContinuousOn f (Set.Ioo a (a + ε)) :=
